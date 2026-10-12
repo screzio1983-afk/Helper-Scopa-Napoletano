@@ -2,197 +2,925 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Griglia ON/OFF</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Segnapunti Scopa</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
   html, body {
     height: 100%;
     overflow: hidden;
+    overscroll-behavior: none;
   }
 
   body {
-    font-family: Arial, sans-serif;
+    font-family: -apple-system, Arial, sans-serif;
     background: #1e1e2e;
+    color: #fff;
     display: flex;
     flex-direction: column;
-    padding: 6px;
-    gap: 6px;
+    padding: 4px;
+    gap: 3px;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
-  .reset {
-    align-self: flex-end;
-    background: #ef4444;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-weight: bold;
-    font-size: 0.85rem;
-    cursor: pointer;
+  /* ── HEADER ── */
+  .header {
     flex: 0 0 auto;
-    transition: background 0.15s ease;
-  }
-
-  .reset:hover {
-    background: #dc2626;
-  }
-
-  .board {
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-height: 0;
-  }
-
-  .suits {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
-    flex: 0 0 auto;
-  }
-
-  .suit {
-    text-align: center;
-    font-size: clamp(0.9rem, 4vw, 1.4rem);
-    font-weight: bold;
-    padding: 2px;
+    background: #2a1a1a;
+    border: 1.5px solid #7f1d1d;
     border-radius: 6px;
-    background: #2a2a3e;
-    line-height: 1.1;
+    padding: 3px 8px;
+    display: flex;
+    align-items: center;
+    font-size: 0.72rem;
+    line-height: 1;
   }
 
-  .suit small {
-    display: block;
-    font-size: clamp(0.5rem, 2vw, 0.65rem);
-    margin-top: 1px;
-    color: #aaa;
+  .header .stats {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex: 1 1 auto;
+    justify-content: space-around;
   }
 
+  /* ── FOOTER ── */
+  .footer {
+    flex: 0 0 auto;
+    background: #1a2a1a;
+    border: 1.5px solid #166534;
+    border-radius: 6px;
+    padding: 3px 8px;
+    display: flex;
+    align-items: center;
+    font-size: 0.72rem;
+    line-height: 1;
+  }
+
+  .footer .stats {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex: 1 1 auto;
+    justify-content: space-around;
+  }
+
+  .stat {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    white-space: nowrap;
+  }
+
+  .stat .label {
+    font-size: 0.62rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .stat .value {
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #fbbf24;
+  }
+
+  .stat.zero .value { color: #555; }
+
+  .stat.total .value {
+    font-size: 1.05rem;
+    text-shadow: 0 0 6px rgba(251,191,36,0.5);
+  }
+
+  .stat.primiera .value { color: #a78bfa; }
+  .stat.primiera.zero .value { color: #555; }
+
+  /* ── GRIGLIA ── */
   .grid {
     flex: 1 1 auto;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: repeat(10, 1fr);
-    gap: 4px;
+    gap: 3px;
     min-height: 0;
   }
 
-  .btn {
-    border: 2px solid #444;
+  .card {
+    border: 1.5px solid #444;
     background: #2a2a3e;
-    color: #fff;
-    border-radius: 6px;
-    font-size: clamp(0.6rem, 2.5vw, 0.95rem);
-    font-weight: bold;
+    border-radius: 5px;
+    padding: 0;
     cursor: pointer;
-    transition: all 0.15s ease;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    user-select: none;
-    padding: 1px;
-    line-height: 1;
-    min-height: 0;
     overflow: hidden;
     position: relative;
+    min-height: 0;
+    transition: transform 0.1s ease, box-shadow 0.15s ease,
+                background 0.15s ease, border-color 0.15s ease;
+    touch-action: none;
+    -webkit-user-drag: none;
+    will-change: transform;
   }
 
-  .btn:active { transform: scale(0.95); }
-
-  .btn .card-img {
+  .card img {
     width: 100%;
     height: 100%;
     object-fit: contain;
     display: block;
     background: #fff;
-    border-radius: 4px;
-    transition: filter 0.15s ease, opacity 0.15s ease;
+    pointer-events: none;
+    -webkit-user-drag: none;
+    transition: opacity 0.15s ease, filter 0.15s ease;
   }
 
-  /* Tasto oscurato (premuto) */
-  .btn.on {
+  /* Stato 1: uscita (oscura 15%) */
+  .card.discarded {
+    background: #2a2a3e;
+    border-color: #3a3a4a;
+  }
+  .card.discarded img {
+    filter: brightness(0.85) grayscale(0.15);
+  }
+
+  /* Stato 2: presa da NOI (immagine visibile, oscura 30%, bordo verde) */
+  .card.taken-us {
+    background: #2a2a3e;
+    border-color: #22c55e;
+    box-shadow: 0 0 6px rgba(34,197,94,0.6), inset 0 0 8px rgba(34,197,94,0.2);
+    cursor: default;
+  }
+  .card.taken-us img {
+    filter: brightness(0.7) grayscale(0.3);
+  }
+
+  /* Stato 3: presa da LORO (immagine visibile, oscura 30%, bordo rosso) */
+  .card.taken-them {
+    background: #2a2a3e;
     border-color: #ef4444;
+    box-shadow: 0 0 6px rgba(239,68,68,0.6), inset 0 0 8px rgba(239,68,68,0.2);
+    cursor: default;
+  }
+  .card.taken-them img {
+    filter: brightness(0.7) grayscale(0.3);
   }
 
-  .btn.on .card-img {
-    filter: brightness(0.25) grayscale(0.5);
-    opacity: 0.7;
+  .card.dragging {
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    z-index: 50;
+    cursor: grabbing;
+    border-color: #fbbf24;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.7), 0 0 16px rgba(251,191,36,0.8);
   }
+  .card.dragging-us {
+    border-color: #22c55e;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.7), 0 0 18px rgba(34,197,94,1);
+  }
+  .card.dragging-them {
+    border-color: #ef4444;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.7), 0 0 18px rgba(239,68,68,1);
+  }
+
+  /* ── RIGHE PRIMIERA ── */
+  .primiera-row {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 1px 0;
+  }
+
+  .primiera-row .side-label {
+    font-size: 0.65rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    flex: 0 0 auto;
+    min-width: 38px;
+  }
+
+  #primiera-them .side-label { color: #f87171; }
+  #primiera-us .side-label { color: #4ade80; }
+
+  .primiera-cards {
+    flex: 1 1 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .primiera-cell {
+    aspect-ratio: 2 / 3;
+    max-height: 40px;
+    max-width: 26px;
+    width: 100%;
+    border-radius: 3px;
+    border: 1px solid #3a3a4a;
+    background: rgba(0,0,0,0.3);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    flex: 0 0 auto;
+  }
+
+  .primiera-cell.empty {
+    border-style: dashed;
+    border-color: #333;
+  }
+
+  .primiera-cell.empty::after {
+    content: attr(data-suit-icon);
+    font-size: 0.7rem;
+    opacity: 0.25;
+    filter: grayscale(1);
+  }
+
+  .primiera-cell img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    background: #fff;
+  }
+
+  .primiera-cell.won {
+    border-color: #22c55e;
+    box-shadow: 0 0 6px rgba(34,197,94,0.9);
+  }
+
+  #primiera-them .primiera-cell:not(.empty) { border-color: #7f1d1d; }
+  #primiera-them .primiera-cell.won { border-color: #22c55e; }
+
+  #primiera-us .primiera-cell:not(.empty) { border-color: #166534; }
+
+  /* ── AZIONI ── */
+  .actions-bar {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: flex-end;
+    gap: 4px;
+  }
+
+  .actions-bar button {
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 0.65rem;
+    padding: 3px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s ease, filter 0.15s ease;
+  }
+
+  .actions-bar button:active { filter: brightness(1.2); }
+
+  #btnUndo { background: #475569; color: #fff; }
+  #btnUndo:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  #btnReset { background: #ef4444; color: #fff; }
+
+  /* ── POPUP COMBINAZIONI ── */
+  .popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 16px;
+  }
+
+  .popup-overlay.show { display: flex; }
+
+  .popup {
+    background: #2a2a3e;
+    border: 2px solid #fbbf24;
+    border-radius: 12px;
+    padding: 14px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+  }
+
+  .popup .title {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #fbbf24;
+    margin-bottom: 4px;
+  }
+
+  .popup .subtitle {
+    font-size: 0.75rem;
+    color: #aaa;
+    margin-bottom: 10px;
+  }
+
+  .popup .sum-display {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #fbbf24;
+    margin-bottom: 10px;
+    line-height: 1;
+  }
+
+  .popup .sum-display.ok { color: #22c55e; }
+  .popup .sum-display.over { color: #ef4444; }
+
+  .popup-cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .popup-card {
+    width: 48px;
+    height: 72px;
+    border: 2px solid #444;
+    border-radius: 5px;
+    overflow: hidden;
+    cursor: pointer;
+    background: #fff;
+    transition: all 0.15s ease;
+    position: relative;
+    flex: 0 0 auto;
+  }
+
+  .popup-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    pointer-events: none;
+  }
+
+  .popup-card.selected {
+    border-color: #fbbf24;
+    box-shadow: 0 0 10px rgba(251,191,36,0.9);
+    transform: scale(0.95);
+  }
+
+  .popup-card.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: #fbbf24;
+    color: #000;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    font-size: 11px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .popup .cancel-btn {
+    background: #475569;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-weight: bold;
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+
+  /* ── BANNER SCOPA ── */
+  .banner {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    background: #f59e0b;
+    color: #fff;
+    padding: 14px 22px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 1rem;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.25s ease;
+    z-index: 300;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  .banner.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  /* ── HINT ── */
+  .hint {
+    position: fixed;
+    bottom: 50%;
+    left: 50%;
+    transform: translate(-50%, 50%);
+    background: rgba(0,0,0,0.92);
+    color: #fff;
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    text-align: center;
+    z-index: 90;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    line-height: 1.7;
+    border: 1px solid #444;
+  }
+  .hint.show { opacity: 1; }
+  .hint b { color: #fbbf24; }
 </style>
 </head>
 <body>
 
-  <button class="reset" onclick="resetAll()">Reset</button>
-
-  <div class="board">
-    <div class="suits">
-      <div class="suit">🪙<small>DENARI</small></div>
-      <div class="suit">🏆<small>COPPE</small></div>
-      <div class="suit">⚔️<small>SPADE</small></div>
-      <div class="suit">🪵<small>BASTONI</small></div>
-    </div>
-    <div class="grid" id="grid"></div>
+  <div class="header">
+    <div class="stats" id="stats-them"></div>
   </div>
 
+  <div class="primiera-row" id="primiera-them">
+    <span class="side-label">Loro</span>
+    <div class="primiera-cards" id="primiera-them-cards"></div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="primiera-row" id="primiera-us">
+    <span class="side-label">Noi</span>
+    <div class="primiera-cards" id="primiera-us-cards"></div>
+  </div>
+
+  <div class="footer">
+    <div class="stats" id="stats-us"></div>
+  </div>
+
+  <div class="actions-bar">
+    <button id="btnUndo" onclick="undo()" disabled>↶ ANNULLA</button>
+    <button id="btnReset" onclick="resetAll()">RESET</button>
+  </div>
+
+  <div class="hint" id="hint">
+    <b>Tap</b> = uscita / nuova<br>
+    <b>Trascina giù ↓</b> = presa nostra<br>
+    <b>Trascina su ↑</b> = presa loro
+  </div>
+
+  <!-- POPUP COMBINAZIONI -->
+  <div class="popup-overlay" id="popupOverlay">
+    <div class="popup">
+      <div class="title">Scegli le carte da prendere</div>
+      <div class="subtitle" id="popupSubtitle">Somma richiesta: <span id="popupTarget">0</span></div>
+      <div class="sum-display" id="popupSum">0</div>
+      <div class="popup-cards" id="popupCards"></div>
+      <button class="cancel-btn" onclick="annullaPopup()">Annulla</button>
+    </div>
+  </div>
+
+  <!-- BANNER -->
+  <div class="banner" id="banner"></div>
+
 <script>
-  const suits = ['DENARI', 'COPPE', 'SPADE', 'BASTONI'];
+  // ═══════════════════════════════════════════════
+  //  CONFIGURAZIONE
+  // ═══════════════════════════════════════════════
+  const SUITS = ['DENARI', 'COPPE', 'SPADE', 'BASTONI'];
+  const SUIT_ICONS = { DENARI: '🪙', COPPE: '🏆', SPADE: '⚔️', BASTONI: '🪵' };
+  const SUITS_ORDER = ['SPADE', 'COPPE', 'BASTONI', 'DENARI'];
   const ROWS = 10;
   const COLS = 4;
-  const grid = document.getElementById('grid');
-  const STORAGE_PREFIX = 'btn_';
+  const STORAGE_KEY = 'scopa_mono_v12';
+  const DRAG_THRESHOLD = 12;
+  const MAX_ROW = 7;
+  const FLY_DURATION = 350;
 
+  const SOGLIA_ORI = 6;
+  const SOGLIA_CARTE = 21;
+  const SOGLIA_PRIMIERA = 84;
+
+  // Valori carte per il gioco (le figure valgono 10)
+  function cardGameValue(row) {
+    if (row >= 8 && row <= 10) return 10; // figure
+    return row; // 1..7
+  }
+
+  const PRIMIERA_VALUE = {
+    1: 16, 2: 12, 3: 13, 4: 14, 5: 15, 6: 18, 7: 21,
+    8: 10, 9: 10, 10: 10
+  };
+
+  let cardStates = new Array(ROWS * COLS).fill(0);
+  // 0 = nuova, 1 = uscita, 2 = presa da NOI, 3 = presa da LORO
+  // 4 = scopa (presa + scopa) — non più usato, la scopa è un contatore separato
+
+  let scopeUs = 0;
+  let scopeThem = 0;
+
+  // Storico
+  let history = [];
+  const MAX_HISTORY = 200;
+
+  // Popup state
+  let popupState = null; // { target, selected: [indices], owner, pendingMainIndex }
+
+  // ═══════════════════════════════════════════════
+  //  UTILITÀ
+  // ═══════════════════════════════════════════════
+  function cardInfo(index) {
+    const row = Math.floor(index / COLS) + 1;
+    const col = index % COLS;
+    return { row, col, suit: SUITS[col] };
+  }
+  function cardFileName(index) {
+    const { row, suit } = cardInfo(index);
+    return `${row} ${suit}.jpg`;
+  }
+
+  // ═══════════════════════════════════════════════
+  //  COSTRUZIONE GRIGLIA
+  // ═══════════════════════════════════════════════
+  const grid = document.getElementById('grid');
   const fragment = document.createDocumentFragment();
 
   for (let row = 1; row <= ROWS; row++) {
-    for (let col = 1; col <= COLS; col++) {
-      const index = (row - 1) * COLS + (col - 1);
-      const btn = document.createElement('button');
-      btn.className = 'btn';
-      btn.dataset.index = index;
-
-      const seme = suits[col - 1];
-      const nomeFile = `${row} ${seme}.jpg`;
+    for (let col = 0; col < COLS; col++) {
+      const index = (row - 1) * COLS + col;
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.dataset.index = index;
 
       const img = document.createElement('img');
-      img.src = nomeFile;
-      img.alt = `${row} di ${seme}`;
-      img.className = 'card-img';
+      img.src = cardFileName(index);
+      img.alt = `${row} ${SUITS[col]}`;
+      img.draggable = false;
       img.onerror = function() {
         this.style.display = 'none';
-        btn.textContent = `${row}\n${seme.slice(0, 3)}`;
-        btn.style.fontSize = 'clamp(0.55rem, 2vw, 0.8rem)';
-        btn.style.whiteSpace = 'pre-line';
+        card.style.background = '#333';
+        card.style.color = '#fff';
+        card.style.fontSize = '0.55rem';
+        card.style.display = 'flex';
+        card.style.alignItems = 'center';
+        card.style.justifyContent = 'center';
+        card.textContent = `${row}\n${SUITS[col].slice(0,3)}`;
+        card.style.whiteSpace = 'pre-line';
       };
+      card.appendChild(img);
 
-      btn.appendChild(img);
+      attachHandlers(card, index);
+      fragment.appendChild(card);
+    }
+  }
+  grid.appendChild(fragment);
 
-      const saved = localStorage.getItem(STORAGE_PREFIX + index) === 'on';
-      if (saved) btn.classList.add('on');
+  const allCards = () => document.querySelectorAll('.card');
 
-      btn.addEventListener('click', () => {
-        btn.classList.toggle('on');
-        const isOn = btn.classList.contains('on');
-        localStorage.setItem(STORAGE_PREFIX + index, isOn ? 'on' : 'off');
-      });
+  // ═══════════════════════════════════════════════
+  //  DRAG
+  // ═══════════════════════════════════════════════
+  let activeDrag = null;
 
-      fragment.appendChild(btn);
+  // Draggabile se stato 0 (nuova) o 1 (uscita)
+  function isDraggable(index) {
+    const s = cardStates[index];
+    return s === 0 || s === 1;
+  }
+
+  function attachHandlers(card, index) {
+    card.addEventListener('pointerdown', (e) => {
+      if (!isDraggable(index)) return;
+      e.preventDefault();
+      startDrag(index, card, e.clientX, e.clientY);
+    });
+
+    card.addEventListener('touchstart', (e) => {
+      if (window.PointerEvent) return;
+      if (!isDraggable(index)) return;
+      const t = e.touches[0];
+      startDrag(index, card, t.clientX, t.clientY);
+      e.preventDefault();
+    }, { passive: false });
+
+    card.addEventListener('mousedown', (e) => {
+      if (window.PointerEvent) return;
+      if (!isDraggable(index)) return;
+      e.preventDefault();
+      startDrag(index, card, e.clientX, e.clientY);
+    });
+
+    card.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
+  function startDrag(index, card, x, y) {
+    activeDrag = { index, card, startX: x, startY: y, mode: null, moved: false };
+    card.classList.add('dragging');
+  }
+
+  function updateDrag(x, y) {
+    if (!activeDrag) return;
+    const dx = x - activeDrag.startX;
+    const dy = y - activeDrag.startY;
+    const dist = Math.hypot(dx, dy);
+
+    activeDrag.card.style.transform = `translate(${dx}px, ${dy}px) scale(1.05)`;
+
+    if (dist > DRAG_THRESHOLD) {
+      activeDrag.moved = true;
+      const mode = dy > 0 ? 'us' : 'them';
+      if (mode !== activeDrag.mode) {
+        activeDrag.card.classList.remove('dragging-us', 'dragging-them');
+        activeDrag.mode = mode;
+        activeDrag.card.classList.add(mode === 'us' ? 'dragging-us' : 'dragging-them');
+      }
+    } else if (activeDrag.mode) {
+      activeDrag.card.classList.remove('dragging-us', 'dragging-them');
+      activeDrag.mode = null;
     }
   }
 
-  grid.appendChild(fragment);
+  function endDrag(x, y) {
+    if (!activeDrag) return;
+    const { index, card, startX, startY, moved } = activeDrag;
+    const statoIniziale = cardStates[index];
 
-  function resetAll() {
-    if (!confirm('Riaccendere tutte le carte?')) return;
-    document.querySelectorAll('.btn').forEach((btn) => {
-      btn.classList.remove('on');
-      localStorage.setItem(STORAGE_PREFIX + btn.dataset.index, 'off');
+    const dx = x - startX;
+    const dy = y - startY;
+    const dist = Math.hypot(dx, dy);
+
+    card.classList.remove('dragging', 'dragging-us', 'dragging-them');
+
+    // Tap (senza drag significativo)
+    if (dist <= DRAG_THRESHOLD) {
+      card.style.transform = '';
+      activeDrag = null;
+
+      if (statoIniziale === 0) {
+        registraStorico({ tipo: 'singolo', index, statoPrecedente: 0 });
+        applicaStato(index, 1);
+      } else if (statoIniziale === 1) {
+        registraStorico({ tipo: 'singolo', index, statoPrecedente: 1 });
+        applicaStato(index, 0);
+      }
+      ricalcolaPunteggi();
+      saveState();
+      return;
+    }
+
+    // Drag: assegna a noi (giù) o a loro (su)
+    const owner = dy > 0 ? 2 : 3;
+    const targetY = dy > 0 ? dy + 200 : dy - 200;
+    card.style.transform = `translate(${dx}px, ${targetY}px) scale(0.6)`;
+    setTimeout(() => { card.style.transform = ''; }, FLY_DURATION);
+
+    activeDrag = null;
+    eseguiPresaAutomatica(index, owner);
+  }
+
+  function cancelDrag() {
+    if (activeDrag) {
+      activeDrag.card.classList.remove('dragging', 'dragging-us', 'dragging-them');
+      activeDrag.card.style.transform = '';
+      activeDrag = null;
+    }
+  }
+
+  document.addEventListener('pointermove', (e) => {
+    if (!activeDrag) return;
+    updateDrag(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerup', (e) => {
+    if (!activeDrag) return;
+    endDrag(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointercancel', cancelDrag);
+
+  document.addEventListener('touchmove', (e) => {
+    if (window.PointerEvent || !activeDrag) return;
+    const t = e.touches[0];
+    updateDrag(t.clientX, t.clientY);
+    e.preventDefault();
+  }, { passive: false });
+  document.addEventListener('touchend', (e) => {
+    if (window.PointerEvent || !activeDrag) return;
+    const t = e.changedTouches[0];
+    endDrag(t.clientX, t.clientY);
+  });
+  document.addEventListener('touchcancel', () => {
+    if (window.PointerEvent) return;
+    cancelDrag();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (window.PointerEvent || !activeDrag) return;
+    updateDrag(e.clientX, e.clientY);
+  });
+  document.addEventListener('mouseup', (e) => {
+    if (window.PointerEvent || !activeDrag) return;
+    endDrag(e.clientX, e.clientY);
+  });
+
+  // ═══════════════════════════════════════════════
+  //  PRESA AUTOMATICA
+  // ═══════════════════════════════════════════════
+  function eseguiPresaAutomatica(index, owner) {
+    const { row } = cardInfo(index);
+    const valoreGiocato = cardGameValue(row);
+
+    // Raccogli le carte "in gioco": stato 1 (uscite), escludendo la carta appena giocata
+    const carteInGioco = [];
+    cardStates.forEach((stato, i) => {
+      if (i === index) return;
+      if (stato === 1) carteInGioco.push(i);
+    });
+
+    // 1. Cerca carta identica (stesso valore)
+    const identiche = carteInGioco.filter(i => {
+      const { row: r } = cardInfo(i);
+      return cardGameValue(r) === valoreGiocato;
+    });
+
+    // Registra l'azione principale
+    const azioni = [{ tipo: 'presa', index, statoPrecedente: cardStates[index] }];
+
+    if (identiche.length > 0) {
+      // Prendi la carta identica (se ce ne sono più di una con lo stesso valore, prendi tutte?)
+      // Regola scopa: carta identica si prende singolarmente. Se ce ne sono 2 identiche sul tavolo,
+      // il giocatore prende solo una (quella che vuole). Ma qui, siccome non può scegliere,
+      // prendiamo tutte quelle identiche insieme? No: la regola dice UNA carta identica.
+      // Prendiamo la prima.
+      const presa = identiche[0];
+      azioni.push({ tipo: 'presa', index: presa, statoPrecedente: cardStates[presa] });
+      finalizzaPresa(azioni, owner, index);
+      return;
+    }
+
+    // 2. Cerca combinazione che somma al valore giocato
+    const combinazioni = trovaCombinazioni(carteInGioco, valoreGiocato);
+
+    if (combinazioni.length === 0) {
+      // Nessuna presa: la carta resta sul tavolo (diventa uscita)
+      azioni[0].statoPrecedente = cardStates[index];
+      applicaStatoConStorico(index, 1, azioni);
+      ricalcolaPunteggi();
+      saveState();
+      return;
+    }
+
+    if (combinazioni.length === 1) {
+      // Una sola combinazione: prendila
+      combinazioni[0].forEach(i => {
+        azioni.push({ tipo: 'presa', index: i, statoPrecedente: cardStates[i] });
+      });
+      finalizzaPresa(azioni, owner, index);
+      return;
+    }
+
+    // Più combinazioni: apri popup
+    apriPopupCombinazioni(index, owner, valoreGiocato, carteInGioco, azioni);
+  }
+
+  // Trova tutte le combinazioni di carte che sommano al target
+  function trovaCombinazioni(carteInGioco, target) {
+    const valori = carteInGioco.map(i => ({ index: i, val: cardGameValue(cardInfo(i).row) }));
+    const risultati = [];
+
+    function ricorsione(start, somma, corrente) {
+      if (somma === target && corrente.length > 0) {
+        risultati.push(corrente.slice());
+        return;
+      }
+      if (somma > target) return;
+      for (let i = start; i < valori.length; i++) {
+        corrente.push(valori[i].index);
+        ricorsione(i + 1, somma + valori[i].val, corrente);
+        corrente.pop();
+      }
+    }
+    ricorsione(0, 0, []);
+    return risultati;
+  }
+
+  // Applica le prese finali e gestisci scopa
+  function finalizzaPresa(azioni, owner, mainIndex) {
+    // Applica la carta giocata come "presa"
+    azioni.forEach(a => {
+      applicaStato(a.index, owner);
+    });
+
+    registraStorico({ tipo: 'gruppo', azioni });
+
+    // Verifica scopa: dopo la presa, non ci sono più carte stato 1?
+    const rimasteInGioco = cardStates.filter(s => s === 1).length;
+    let scopa = false;
+    if (rimasteInGioco === 0) {
+      // Scopa! (a meno che non sia l'ultima carta del mazzo, ma qui non lo sappiamo)
+      scopa = true;
+      if (owner === 2) scopeUs += 1;
+      else scopeThem += 1;
+      showBanner(`🧹 SCOPA per ${owner === 2 ? 'NOI' : 'LORO'}!`);
+      if (navigator.vibrate) navigator.vibrate([30, 30, 30]);
+    }
+
+    ricalcolaPunteggi();
+    saveState();
+  }
+
+  function applicaStatoConStorico(index, nuovoStato, azioni) {
+    azioni.forEach(a => applicaStato(a.index, a.tipo === 'presa' ? nuovoStato : a.statoPrecedente));
+    registraStorico({ tipo: 'gruppo', azioni });
+  }
+
+  // ═══════════════════════════════════════════════
+  //  POPUP COMBINAZIONI
+  // ═══════════════════════════════════════════════
+  function apriPopupCombinazioni(mainIndex, owner, target, carteInGioco, azioniIniziali) {
+    popupState = {
+      mainIndex,
+      owner,
+      target,
+      carteInGioco: carteInGioco.slice(),
+      selected: [],
+      azioniIniziali
+    };
+
+    document.getElementById('popupTarget').textContent = target;
+    document.getElementById('popupSum').textContent = '0';
+    document.getElementById('popupSum').className = 'sum-display';
+    document.getElementById('popupOverlay').classList.add('show');
+    renderPopupCards();
+  }
+
+  function renderPopupCards() {
+    const container = document.getElementById('popupCards');
+    container.innerHTML = '';
+    popupState.carteInGioco.forEach(index => {
+      const div = document.createElement('div');
+      div.className = 'popup-card';
+      if (popupState.selected.includes(index)) div.classList.add('selected');
+
+      const img = document.createElement('img');
+      img.src = cardFileName(index);
+      img.draggable = false;
+      img.onerror = function() {
+        this.style.display = 'none';
+        const { row, suit } = cardInfo(index);
+        div.textContent = `${row}${SUIT_ICONS[suit]}`;
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.justifyContent = 'center';
+        div.style.color = '#000';
+        div.style.fontWeight = 'bold';
+      };
+      div.appendChild(img);
+
+      div.addEventListener('click', () => togglePopupCard(index));
+      container.appendChild(div);
     });
   }
-</script>
 
-</body>
-</html>
+  function togglePopupCard(index) {
+    if (!popupState) return;
+    const pos = popupState.selected.indexOf(index);
+    if (pos === -1) {
+      popupState.selected.push(index);
+    } else {
+      popupState.selected.splice(pos, 1);
+    }
+
+    // Calcola somma
+    const somma = popupState.selected.reduce((s, i) => {
+      return s + cardGameValue(cardInfo(i).row);
+    }, 0);
+
+    const sumEl = document.getElementById('popupSum');
+    sumEl.textContent = somma;
+    sumEl.className = 'sum-display';
+    if (somma === popupState.target) sumEl.classList.add('ok');
+    else if (somma > popupState.target) sumEl.classList.add('over');
+
+    renderPopupCards();
+
+    // Se somma esatta, chiudi e finalizza
+    if (somma === popupState.target) {
+      setTimeout(() => {
+        finalizzaPopup();
+      }, 200);
+    }
+  }
+
+  function finalizzaPopup() {
+    if (!popupState) return;
+    const azioni = popupState.azioniIniziali.slice();
+    popupState.selected.forEach(i => {
+      azioni.push({ tipo: 'presa', index: i, statoPrecedente: cardStates[i] });
+    });
+
+    const { owner, mainIndex }
